@@ -10,7 +10,7 @@ set -e
 
 # --- Configuration ---
 ONION_APPS_DIR="/mnt/SDCARD/App"
-TIME_FIX_TARGET="$ONION_APPS_DIR/GSG"
+TIME_FIX_TARGET="$ONION_APPS_DIR/TimeQuickFix"
 
 # Persistence File: Stores the last known good timezone
 TZ_STATE_FILE="$TIME_FIX_TARGET/last_tz.txt"
