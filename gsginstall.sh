@@ -1,4 +1,4 @@
-#!/bin/bash
+#!/bin/sh
 
 # ==============================================================================
 # GSG (Game Save Genie) OnionOS Setup & Dependency Installer
@@ -23,6 +23,7 @@ GSG_DIR="$ONION_APPS_DIR/GSG"
 TIME_FIX_TARGET="$ONION_APPS_DIR/TimeQuickFix"
 TIME_FIX_LAUNCH="$TIME_FIX_TARGET/launch.sh"
 TIME_FIX_CONFIG="$TIME_FIX_TARGET/config.json"
+TIME_FIX_REPO="https://github.com/hotcereal/time-quick-fix"
 TIME_FIX_ZIP="https://github.com/hotcereal/time-quick-fix/archive/refs/heads/main.zip"
 
 TEMP_DIR="/tmp/gsg_setup"
@@ -46,12 +47,16 @@ echo -e "${YELLOW}[2/4] Checking rclone installation...${NC}"
 if [ -x "$RCLONE_BIN" ]; then
     echo -e "${GREEN}✓ rclone is already installed at $RCLONE_BIN${NC}"
 else
-    echo "Downloading latest rclone..."
+    echo "rclone not found. Downloading latest..."
     wget -q "$RCLONE_URL" -O "$TEMP_DIR/rclone.zip"
     
-    echo "Extracting binary to SD root..."
-    # -j junk paths: extracts only the file, ignoring the internal zip folder structure
-    unzip -q -j "$TEMP_DIR/rclone.zip" rclone -d "$ONION_ROOT/"
+    echo "Extracting archive (BusyBox compatible mode)..."
+    # We unzip into a sub-temp folder because BusyBox doesn't support '-j'
+    unzip -q "$TEMP_DIR/rclone.zip" -d "$TEMP_DIR/rclone_extracted"
+    
+    echo "Locating and moving binary to SD root..."
+    # Find the rclone file anywhere in the extracted folder and move it to the destination
+    find "$TEMP_DIR/rclone_extracted" -name "rclone" -exec mv {} "$RCLONE_BIN" \;
     
     chmod +x "$RCLONE_BIN"
     echo -e "${GREEN}✓ rclone installed to $RCLONE_BIN${NC}"
@@ -74,7 +79,6 @@ else
     unzip -q "$TEMP_DIR/tf.zip" -d "$TEMP_DIR/tf_extracted"
     
     # GitHub ZIPs extract into a folder named 'repo-name-branch' (e.g., time-quick-fix-main)
-    # We need to find that folder and grab the App/TimeQuickFix subfolder
     EXTRACTED_SUBDIR=$(find "$TEMP_DIR/tf_extracted" -maxdepth 1 -type d -name "time-quick-fix-*" | head -n 1)
     
     if [ -d "$EXTRACTED_SUBDIR/App/TimeQuickFix" ]; then
@@ -82,7 +86,6 @@ else
         cp -r "$EXTRACTED_SUBDIR/App/TimeQuickFix/"* "$TIME_FIX_TARGET/"
         chmod +x "$TIME_FIX_TARGET/launch.sh"
         
-        # Final verification
         if [ -f "$TIME_FIX_LAUNCH" ] && [ -f "$TIME_FIX_CONFIG" ]; then
             echo -e "${GREEN}✓ time-quick-fix installed and verified.${NC}"
         else
@@ -95,10 +98,8 @@ else
     fi
 fi
 
-
 echo -e "${YELLOW}[4/4] Skipping GSG App entry...${NC}"
-
-:' #commenting out this section for testing
+:' #commenting out gsg section to just test rsync and timefix
 # 4. Create GSG Launch Script (The App Entry Point)
 echo -e "${YELLOW}[4/4] Finalizing GSG App entry...${NC}"
 if [ -f "$GSG_DIR/launch.sh" ]; then
@@ -106,7 +107,7 @@ if [ -f "$GSG_DIR/launch.sh" ]; then
 else
     echo "Creating launch.sh for GSG..."
     cat <<EOF > "$GSG_DIR/launch.sh"
-#!/bin/bash
+#!/bin/sh
 # GSG Launch Script
 echo "Starting Game Save Genie..."
 # When the dev is ready, replace the line below with the actual execution command:
@@ -116,7 +117,7 @@ EOF
     chmod +x "$GSG_DIR/launch.sh"
     echo -e "${GREEN}✓ GSG launch script created.${NC}"
 fi
-' # end of comment block
+' #end of comment block
 
 # Cleanup
 rm -rf "$TEMP_DIR"
