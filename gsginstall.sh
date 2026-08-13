@@ -26,7 +26,7 @@ TIME_FIX_CONFIG="$TIME_FIX_TARGET/config.json"
 TIME_FIX_REPO="https://github.com/hotcereal/time-quick-fix"
 TIME_FIX_ZIP="https://github.com/hotcereal/time-quick-fix/archive/refs/heads/main.zip"
 
-# FIX: Use SD card for temp files to avoid "No space left on device" in RAM (/tmp)
+# Use SD card for temp files to avoid "No space left on device" in RAM (/tmp)
 TEMP_DIR="$ONION_ROOT/gsg_temp"
 
 # Cleanup function to be called on exit (success or error)
@@ -118,13 +118,13 @@ fi
 # 4. Create GSG Launch Script (The App Entry Point)
 echo -e "${YELLOW}[4/4] Skipping GSG App entry...${NC}"
 
-:' #commenting out this section for testing
-# 4. Create GSG Launch Script (The App Entry Point)
-if [ -f "$GSG_DIR/launch.sh" ]; then
-    echo -e "${GREEN}✓ GSG launch script already exists.${NC}"
-else
-    echo "Creating launch.sh for GSG..."
-    cat <<EOF > "$GSG_DIR/launch.sh"
+if false; then
+    # This block is commented out for testing purposes using POSIX-compliant 'if false'
+    if [ -f "$GSG_DIR/launch.sh" ]; then
+        echo -e "${GREEN}✓ GSG launch script already exists.${NC}"
+    else
+        echo "Creating launch.sh for GSG..."
+        cat <<EOF > "$GSG_DIR/launch.sh"
 #!/bin/sh
 # GSG Launch Script
 echo "Starting Game Save Genie..."
@@ -132,10 +132,10 @@ echo "Starting Game Save Genie..."
 # /mnt/SDCARD/App/GSG/main.sh
 sleep 2
 EOF
-    chmod +x "$GSG_DIR/launch.sh"
-    echo -e "${GREEN}✓ GSG launch script created.${NC}"
+        chmod +x "$GSG_DIR/launch.sh"
+        echo -e "${GREEN}✓ GSG launch script created.${NC}"
+    fi
 fi
-' # end of comment block
 
 echo -e "\n${GREEN}==============================================${NC}"
 echo -e "${GREEN}   GSG Setup Complete!${NC}"
