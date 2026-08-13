@@ -26,7 +26,19 @@ TIME_FIX_CONFIG="$TIME_FIX_TARGET/config.json"
 TIME_FIX_REPO="https://github.com/hotcereal/time-quick-fix"
 TIME_FIX_ZIP="https://github.com/hotcereal/time-quick-fix/archive/refs/heads/main.zip"
 
-TEMP_DIR="/tmp/gsg_setup"
+# FIX: Use SD card for temp files to avoid "No space left on device" in RAM (/tmp)
+TEMP_DIR="$ONION_ROOT/gsg_temp"
+
+# Cleanup function to be called on exit (success or error)
+cleanup() {
+    if [ -d "$TEMP_DIR" ]; then
+        echo -e "${YELLOW}Cleaning up temporary files...${NC}"
+        rm -rf "$TEMP_DIR"
+    fi
+}
+
+# Register the cleanup function to run whenever the script exits
+trap cleanup EXIT
 
 # Colors
 GREEN='\033[0;32m'
@@ -51,12 +63,10 @@ else
     wget -q "$RCLONE_URL" -O "$TEMP_DIR/rclone.zip"
     
     echo "Extracting archive (BusyBox compatible mode)..."
-    # FIX: Explicitly create the destination directory because BusyBox unzip won't do it
     mkdir -p "$TEMP_DIR/rclone_extracted"
     unzip -q "$TEMP_DIR/rclone.zip" -d "$TEMP_DIR/rclone_extracted"
     
     echo "Locating and moving binary to SD root..."
-    # Find the rclone file anywhere in the extracted folder
     RCLONE_FOUND=$(find "$TEMP_DIR/rclone_extracted" -name "rclone" | head -n 1)
     
     if [ -n "$RCLONE_FOUND" ]; then
@@ -86,7 +96,6 @@ else
     mkdir -p "$TEMP_DIR/tf_extracted"
     unzip -q "$TEMP_DIR/tf.zip" -d "$TEMP_DIR/tf_extracted"
     
-    # GitHub ZIPs extract into a folder named 'repo-name-branch' (e.g., time-quick-fix-main)
     EXTRACTED_SUBDIR=$(find "$TEMP_DIR/tf_extracted" -maxdepth 1 -type d -name "time-quick-fix-*" | head -n 1)
     
     if [ -d "$EXTRACTED_SUBDIR/App/TimeQuickFix" ]; then
@@ -127,9 +136,6 @@ EOF
     echo -e "${GREEN}✓ GSG launch script created.${NC}"
 fi
 ' # end of comment block
-
-# Cleanup
-rm -rf "$TEMP_DIR"
 
 echo -e "\n${GREEN}==============================================${NC}"
 echo -e "${GREEN}   GSG Setup Complete!${NC}"
