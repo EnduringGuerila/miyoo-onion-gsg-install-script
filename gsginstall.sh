@@ -51,15 +51,22 @@ else
     wget -q "$RCLONE_URL" -O "$TEMP_DIR/rclone.zip"
     
     echo "Extracting archive (BusyBox compatible mode)..."
-    # We unzip into a sub-temp folder because BusyBox doesn't support '-j'
+    # FIX: Explicitly create the destination directory because BusyBox unzip won't do it
+    mkdir -p "$TEMP_DIR/rclone_extracted"
     unzip -q "$TEMP_DIR/rclone.zip" -d "$TEMP_DIR/rclone_extracted"
     
     echo "Locating and moving binary to SD root..."
-    # Find the rclone file anywhere in the extracted folder and move it to the destination
-    find "$TEMP_DIR/rclone_extracted" -name "rclone" -exec mv {} "$RCLONE_BIN" \;
+    # Find the rclone file anywhere in the extracted folder
+    RCLONE_FOUND=$(find "$TEMP_DIR/rclone_extracted" -name "rclone" | head -n 1)
     
-    chmod +x "$RCLONE_BIN"
-    echo -e "${GREEN}✓ rclone installed to $RCLONE_BIN${NC}"
+    if [ -n "$RCLONE_FOUND" ]; then
+        mv "$RCLONE_FOUND" "$RCLONE_BIN"
+        chmod +x "$RCLONE_BIN"
+        echo -e "${GREEN}✓ rclone installed to $RCLONE_BIN${NC}"
+    else
+        echo -e "${RED}Error: Could not find rclone binary in the zip file.${NC}"
+        exit 1
+    fi
 fi
 
 # 3. Install time-quick-fix (The Dependency via ZIP)
@@ -76,6 +83,7 @@ else
     wget -q "$TIME_FIX_ZIP" -O "$TEMP_DIR/tf.zip"
     
     echo "Extracting TimeQuickFix..."
+    mkdir -p "$TEMP_DIR/tf_extracted"
     unzip -q "$TEMP_DIR/tf.zip" -d "$TEMP_DIR/tf_extracted"
     
     # GitHub ZIPs extract into a folder named 'repo-name-branch' (e.g., time-quick-fix-main)
@@ -98,10 +106,11 @@ else
     fi
 fi
 
-echo -e "${YELLOW}[4/4] Skipping GSG App entry...${NC}"
-:' #commenting out gsg section to just test rsync and timefix
 # 4. Create GSG Launch Script (The App Entry Point)
-echo -e "${YELLOW}[4/4] Finalizing GSG App entry...${NC}"
+echo -e "${YELLOW}[4/4] Skipping GSG App entry...${NC}"
+
+:' #commenting out this section for testing
+# 4. Create GSG Launch Script (The App Entry Point)
 if [ -f "$GSG_DIR/launch.sh" ]; then
     echo -e "${GREEN}✓ GSG launch script already exists.${NC}"
 else
@@ -117,7 +126,7 @@ EOF
     chmod +x "$GSG_DIR/launch.sh"
     echo -e "${GREEN}✓ GSG launch script created.${NC}"
 fi
-' #end of comment block
+' # end of comment block
 
 # Cleanup
 rm -rf "$TEMP_DIR"
