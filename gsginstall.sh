@@ -9,25 +9,32 @@
 set -e
 
 # --- Configuration ---
-ONION_ROOT="/mnt/SDCARD"
-ONION_APPS_DIR="$ONION_ROOT/App"
+SD_ROOT="/mnt/SDCARD"
+APP_DIR="/mnt/SDCARD/App"
 
 # rclone (Using the 'current' link for always-latest)
-RCLONE_BIN="$ONION_ROOT/rclone"
+RCLONE_BIN="$SD_ROOT/rclone"
 RCLONE_URL="https://downloads.rclone.org/rclone-current-linux-arm-v7.zip"
 
 # GSG App Configuration
-GSG_DIR="$ONION_APPS_DIR/GSG"
+GSG_DIR="$APP_DIR/GSG"
 
 # TimeQuickFix Dependency (Using GitHub ZIP)
-TIME_FIX_TARGET="$ONION_APPS_DIR/TimeQuickFix"
-TIME_FIX_LAUNCH="$TIME_FIX_TARGET/launch.sh"
-TIME_FIX_CONFIG="$TIME_FIX_TARGET/config.json"
-TIME_FIX_REPO="https://github.com/hotcereal/time-quick-fix"
+TIME_FIX_DIR="$APP_DIR/TimeQuickFix"
+TIME_FIX_LAUNCH="$TIME_FIX_DIR/launch.sh"
+TIME_FIX_CONFIG="$TIME_FIX_DIR/config.json"
 TIME_FIX_ZIP="https://github.com/hotcereal/time-quick-fix/archive/refs/heads/main.zip"
 
 # Use SD card for temp files to avoid "No space left on device" in RAM (/tmp)
-TEMP_DIR="$ONION_ROOT/gsg_temp"
+TEMP_DIR="$SD_ROOT/gsg_temp"
+
+# Colors
+GREEN='\033[0;32m'
+BLUE='\033[0;34m'
+YELLOW='\033[1;33m'
+RED='\033[0;31m'
+NC='\033[0m'
+
 
 # Cleanup function to be called on exit (success or error)
 cleanup() {
@@ -39,13 +46,6 @@ cleanup() {
 
 # Register the cleanup function to run whenever the script exits
 trap cleanup EXIT
-
-# Colors
-GREEN='\033[0;32m'
-BLUE='\033[0;34m'
-YELLOW='\033[1;33m'
-RED='\033[0;31m'
-NC='\033[0m'
 
 echo -e "${BLUE}Starting GSG Setup for OnionOS...${NC}"
 
@@ -62,12 +62,11 @@ else
     echo "rclone not found. Downloading latest..."
     wget -q "$RCLONE_URL" -O "$TEMP_DIR/rclone.zip"
     
-    echo "Extracting archive (BusyBox compatible mode)..."
-    mkdir -p "$TEMP_DIR/rclone_extracted"
-    unzip -q "$TEMP_DIR/rclone.zip" -d "$TEMP_DIR/rclone_extracted"
+    echo "Extracting archive..."
+    unzip "$TEMP_DIR/rclone.zip" -d $TEMP_DIR
     
     echo "Locating and moving binary to SD root..."
-    RCLONE_FOUND=$(find "$TEMP_DIR/rclone_extracted" -name "rclone" | head -n 1)
+    RCLONE_FOUND=$(find $TEMP_DIR/rclone* -name "rclone" | head -n 1)
     
     if [ -n "$RCLONE_FOUND" ]; then
         mv "$RCLONE_FOUND" "$RCLONE_BIN"
@@ -84,9 +83,9 @@ echo -e "${YELLOW}[3/4] Checking time-quick-fix dependency...${NC}"
 if [ -f "$TIME_FIX_LAUNCH" ] && [ -f "$TIME_FIX_CONFIG" ]; then
     echo -e "${GREEN}✓ time-quick-fix is already installed and verified.${NC}"
 else
-    if [ -d "$TIME_FIX_TARGET" ]; then
+    if [ -d "$TIME_FIX_DIR" ]; then
         echo -e "${YELLOW}! Incomplete or corrupt TimeQuickFix detected. Reinstalling...${NC}"
-        rm -rf "$TIME_FIX_TARGET"
+        rm -rf "$TIME_FIX_DIR"
     fi
 
     echo "Downloading time-quick-fix ZIP..."
@@ -99,9 +98,9 @@ else
     EXTRACTED_SUBDIR=$(find "$TEMP_DIR/tf_extracted" -maxdepth 1 -type d -name "time-quick-fix-*" | head -n 1)
     
     if [ -d "$EXTRACTED_SUBDIR/App/TimeQuickFix" ]; then
-        mkdir -p "$TIME_FIX_TARGET"
-        cp -r "$EXTRACTED_SUBDIR/App/TimeQuickFix/"* "$TIME_FIX_TARGET/"
-        chmod +x "$TIME_FIX_TARGET/launch.sh"
+        mkdir -p "$TIME_FIX_DIR"
+        cp -r "$EXTRACTED_SUBDIR/App/TimeQuickFix/"* "$TIME_FIX_DIR/"
+        chmod +x "$TIME_FIX_DIR/launch.sh"
         
         if [ -f "$TIME_FIX_LAUNCH" ] && [ -f "$TIME_FIX_CONFIG" ]; then
             echo -e "${GREEN}✓ time-quick-fix installed and verified.${NC}"
@@ -141,5 +140,5 @@ echo -e "\n${GREEN}==============================================${NC}"
 echo -e "${GREEN}   GSG Setup Complete!${NC}"
 echo -e "   rclone: $RCLONE_BIN"
 echo -e "   GSG App: $GSG_DIR"
-echo -e "   TimeFix: $TIME_FIX_TARGET"
+echo -e "   TimeFix: $TIME_FIX_DIR"
 echo -e "${GREEN}==============================================${NC}"
